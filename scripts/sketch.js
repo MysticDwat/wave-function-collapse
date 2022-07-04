@@ -4,7 +4,7 @@ const tileImages = [];
 
 //array to store grid and var to store dimensions
 let grid = [];
-const DIM = 20;
+const DIM = 50;
 
 //vars to store last state for backtracking
 let lastGrid = [];
@@ -12,10 +12,16 @@ let lastCoors = [];
 let lastIndex = -1;
 let lastOptions = [];
 let lastPick = -1;
+let lastSeed = -1;
 
 //debug states
 const DEBUG_MODE = false;
-let seed = 0;
+let seed = -1;
+
+/*
+known emergency exit seeds:
+> 373.85106552392244
+*/
 
 function preload() {
     //get tile images
@@ -89,11 +95,20 @@ function draw() {
 
             //if still contradiction, exit
             if(cell.options.length === 0){
-                console.log("EMERGENCY EXIT! SEED:", seed, "LAST STEP:", lastCoors, lastIndex, lastOptions, lastPick, "CURRENT STEP:", row, column);
-                console.log("Cell Options:", cell.options);
-                noLoop();
+                console.log("EMERGENCY EXIT! SEED:", lastSeed, "LAST STEP:", lastCoors, lastIndex, lastOptions, lastPick, "CURRENT STEP:", row, column);
+                resetGrid();
                 return;
             }
+
+            //store state
+            lastGrid = [...grid].map((cell) => new Cell(cell.collapsed, [...cell.options]));
+            lastCoors = [lastCoors[0]]
+            lastOptions = cell.options;
+
+            //collapse and store pick
+            cell.options = [random(cell.options)];
+            cell.collapsed = true;
+            lastPick = cell.options[0];
 
             //back step
             console.log("BACK STEP");
@@ -141,9 +156,15 @@ function draw() {
 
 //function to reset the grid with empty cells
 function resetGrid() {
+    //if seed is -1, set seed to random
+    if(seed < 0) seed = random(10000);
+
     //sets random seed
-    seed = random(10000);
     randomSeed(seed);
+
+    //store last seed and generate new seed
+    lastSeed = seed;
+    seed = random(10000);
 
     //empty the grid
     grid = [];
