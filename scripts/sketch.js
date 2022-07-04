@@ -13,7 +13,8 @@ let lastIndex = -1;
 let lastOptions = [];
 let lastPick = -1;
 
-//controls random seed
+//debug states
+const DEBUG_MODE = false;
 let seed = 0;
 
 function preload() {
@@ -79,28 +80,35 @@ function draw() {
         const column = gridIndex % DIM;
         const row = (gridIndex - (column)) / DIM;
 
+        //if contradiction
         if(cell.options.length === 0) {
+            //reset state and remove picked option
             grid = [...lastGrid];
             cell = grid[lastIndex];
             cell.options.splice(cell.options.indexOf(lastPick),1);
 
+            //if still contradiction, exit
             if(cell.options.length === 0){
                 console.log("EMERGENCY EXIT! SEED:", seed, "LAST STEP:", lastCoors, lastIndex, lastOptions, lastPick, "CURRENT STEP:", row, column);
                 console.log("Cell Options:", cell.options);
                 noLoop();
                 return;
             }
-            console.log("BACKTRACK");
+
+            //back step
+            console.log("BACK STEP");
             propagateChanges(cell);
             return;
         }
 
-        //back step if multiple options
+        //store state if multiple options
         if(cell.options.length > 1){
             lastGrid = [...grid].map((cell) => new Cell(cell.collapsed, [...cell.options]));
             lastCoors = [`Row: ${row} Column: ${column}`];
             lastIndex = gridIndex;
             lastOptions = [...cell.options];
+
+        //else store coordinates
         }else {
             lastCoors.push(`Row: ${row} Column: ${column}`);
         }
@@ -109,17 +117,23 @@ function draw() {
         cell.options = [random(cell.options)];
         cell.collapsed = true;
 
-        //back step pick
+        //store pick if multiple options
         if(lastIndex === gridIndex){
             lastPick = cell.options[0];
         }
 
         //propagate changes
         propagateChanges(cell);
+
+    //if entire grid has collapsed, complete algorithm
     } else {
-        //noLoop();
         console.log("COMPLETE");
-        resetGrid();
+
+        if(!DEBUG_MODE){
+            noLoop();
+        } else {
+            resetGrid();
+        }
     }
 
     drawGrid();
