@@ -4,7 +4,7 @@ const tileImages = [];
 
 //array to store grid and var to store dimensions
 let grid = [];
-const DIM = 50;
+const DIM = 20;
 
 //vars to store last state for backtracking
 let lastGrid = [];
