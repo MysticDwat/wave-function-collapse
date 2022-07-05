@@ -4,7 +4,7 @@ const tileImages = [];
 
 //array to store grid and var to store dimensions
 let grid = [];
-const DIM = 20;
+let DIM = 20;
 
 //vars to store last state for backtracking
 let lastGrid = [];
@@ -17,11 +17,7 @@ let lastSeed = -1;
 //debug states
 const DEBUG_MODE = false;
 let seed = -1;
-
-/*
-known emergency exit seeds:
-> 373.85106552392244
-*/
+let errorSeeds = [];
 
 function preload() {
     //get tile images
@@ -64,15 +60,22 @@ function setup() {
     //initialize the grid with empty cells
     resetGrid();
 
+    //stop looping
+    noLoop();
 }
 
 function draw() {
+    if(!isLooping()){
+        return;
+    }
+
     //copy grid, remove collapsed, and sort
     let sortedGrid = [...grid].filter((cell) => !cell.collapsed);
     sortedGrid.sort((a, b) => {
         return a.options.length - b.options.length;
     });
 
+    //while there are non collapsed cells.
     if(sortedGrid.length > 0){
         //filter sorted grid by least entropy
         const leastEntropy = sortedGrid[0].options.length
@@ -93,9 +96,10 @@ function draw() {
             cell = grid[lastIndex];
             cell.options.splice(cell.options.indexOf(lastPick),1);
 
-            //if still contradiction, exit
+            //if still contradiction, exit and store seed
             if(cell.options.length === 0){
                 console.log("EMERGENCY EXIT! SEED:", lastSeed, "LAST STEP:", lastCoors, lastIndex, lastOptions, lastPick, "CURRENT STEP:", row, column);
+                errorSeeds.push(lastSeed);
                 resetGrid();
                 return;
             }
@@ -168,6 +172,7 @@ function resetGrid() {
 
     //empty the grid
     grid = [];
+
     //create initial options
     let options = new Array(tiles.length).fill(0).map((x, i) => i);
 
@@ -324,5 +329,18 @@ function propagateChanges(cell) {
                 queue.push(grid[gridIndex - 1]);
             }
         }
+    }
+}
+
+//function to start WFC on a new grid
+function startNewGrid() {
+    //only run if wfc is not running
+    if(!isLooping()){
+        //set new dimensions and reset grid
+        DIM = Number(document.getElementById("dim").value);
+        resetGrid();
+
+        //activate loop
+        loop();
     }
 }

@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>Wave Function Collapse</title>
 
+    <link rel="stylesheet" href="../stylesheets/master.css">
+
     <script src="https://cdn.jsdelivr.net/npm/p5@1.4.1/lib/p5.js"></script>
     <script src="../scripts/tile.js"></script>
     <script src="../scripts/cell.js"></script>
@@ -11,7 +13,13 @@
 </head>
 <body>
     <main>
-
+        <div>
+            <h1>Wave Function Collapse Algorithm</h1>
+            <label for="dim">Dimension:</label>
+            <input type="number" min="3" max="50" value="20" id="dim">
+            <button onclick="startNewGrid()">New Grid</button>
+            <br><br>
+        </div>
     </main>
 </body>
 </html>
