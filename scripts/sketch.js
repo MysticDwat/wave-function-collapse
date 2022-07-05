@@ -12,7 +12,7 @@ let DIM = 20;
 let backStepper = new BackStepper();
 
 //debug states
-const DEBUG_MODE = true;
+const DEBUG_MODE = false;
 let seed = -1;
 
 function preload() {
