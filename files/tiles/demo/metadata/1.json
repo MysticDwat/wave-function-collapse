@@ -1,0 +1,10 @@
+{
+  "image" : "../files/demo/images/1.png",
+  "type" : "a",
+  "edges" : [
+    "b",
+    "b",
+    "a",
+    "b"
+  ]
+}

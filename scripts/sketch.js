@@ -1,30 +1,30 @@
 //arrays to store tiles and tile images
 let tiles = [];
 const tileImages = [];
+const baseTileData = [];
+const numBaseTiles = 2;
 
 //array to store grid and var to store dimensions
 let grid = [];
 let DIM = 20;
 
-//vars to store last state for backtracking
-let lastGrid = [];
-let lastCoors = [];
-let lastIndex = -1;
-let lastOptions = [];
-let lastPick = -1;
-let lastSeed = -1;
+//back stepper to handle contradictions
+let backStepper = new BackStepper();
 
 //debug states
-const DEBUG_MODE = false;
+const DEBUG_MODE = true;
 let seed = -1;
-let errorSeeds = [];
 
 function preload() {
-    //get tile images
+    //get base tile data
     const path = "../files/tiles/demo";
-    for(let i = 0; i < 2; i++){
-        tileImages[i] = loadImage(`${path}/${i}.png`);
+    for(let i = 0; i < numBaseTiles; i++){
+        baseTileData[i] = loadJSON(`${path}/metadata/${i}.json`, () => loadTileImage(path, i));
     }
+}
+
+function loadTileImage(path, i) {
+    tileImages[i] = loadImage(`${path}/images/${i}.png`);
 }
 
 function setup() {
@@ -33,19 +33,26 @@ function setup() {
     background(0);
 
     //create base tiles
-    tiles[0] = new Tile(tileImages[0], ["a", "a", "a", "a"]);
-    tiles[1] = new Tile(tileImages[1], ["b", "b", "a", "b"]);
+    for(let i = 0; i < numBaseTiles; i++){
+        tiles[i] = new Tile(tileImages[i], baseTileData[i].edges);
+    }
 
     //create rotated tiles
     let len = tiles.length;
-    for(let i = 0; i < len; i++) {
-        for(let j = 1; j < 4; j++){
-            tiles[i * 3 + len - 1 + j] = tiles[i].rotate(j);
+    for(let i = 0; i < len; i++){
+        //get base tile data
+        let tileData = baseTileData[i];
+
+        //if tile is perfectly symmetrical, continue
+        if (tileData.type === "s") continue;
+
+        //if tile is symmetrical on one axis, get one rotation.
+        //else get three rotations.
+        let curLen = tiles.length;
+        for(let j = 1; j < (2 + (2 * (tileData.type !== "f"))); j++){
+            tiles[curLen - 1 + j] = tiles[i].rotate(j);
         }
     }
-
-    //remove duplicate tiles
-    removeDuplicateTiles();
 
     //index tiles
     for(let i = 0; i < tiles.length; i++){
@@ -61,7 +68,7 @@ function setup() {
     resetGrid();
 
     //stop looping
-    noLoop();
+    if(!DEBUG_MODE) noLoop();
 }
 
 function draw() {
@@ -86,60 +93,12 @@ function draw() {
 
         //get row and column
         const gridIndex = grid.indexOf(cell);
-        const column = gridIndex % DIM;
-        const row = (gridIndex - (column)) / DIM;
 
-        //if contradiction
-        if(cell.options.length === 0) {
-            //reset state and remove picked option
-            grid = [...lastGrid];
-            cell = grid[lastIndex];
-            cell.options.splice(cell.options.indexOf(lastPick),1);
+        //check for contradiction. if contradiction, return
+        if(checkContradiction(cell)) return;
 
-            //if still contradiction, exit and store seed
-            if(cell.options.length === 0){
-                console.log("EMERGENCY EXIT! SEED:", lastSeed, "LAST STEP:", lastCoors, lastIndex, lastOptions, lastPick, "CURRENT STEP:", row, column);
-                errorSeeds.push(lastSeed);
-                resetGrid();
-                return;
-            }
-
-            //store state
-            lastGrid = [...grid].map((cell) => new Cell(cell.collapsed, [...cell.options]));
-            lastCoors = [lastCoors[0]]
-            lastOptions = cell.options;
-
-            //collapse and store pick
-            cell.options = [random(cell.options)];
-            cell.collapsed = true;
-            lastPick = cell.options[0];
-
-            //back step
-            console.log("BACK STEP");
-            propagateChanges(cell);
-            return;
-        }
-
-        //store state if multiple options
-        if(cell.options.length > 1){
-            lastGrid = [...grid].map((cell) => new Cell(cell.collapsed, [...cell.options]));
-            lastCoors = [`Row: ${row} Column: ${column}`];
-            lastIndex = gridIndex;
-            lastOptions = [...cell.options];
-
-        //else store coordinates
-        }else {
-            lastCoors.push(`Row: ${row} Column: ${column}`);
-        }
-
-        //collapse
-        cell.options = [random(cell.options)];
-        cell.collapsed = true;
-
-        //store pick if multiple options
-        if(lastIndex === gridIndex){
-            lastPick = cell.options[0];
-        }
+        //collapse cell and store state
+        collapseCell(cell, gridIndex);
 
         //propagate changes
         propagateChanges(cell);
@@ -155,6 +114,7 @@ function draw() {
         }
     }
 
+    //draw grid
     drawGrid();
 }
 
@@ -166,8 +126,7 @@ function resetGrid() {
     //sets random seed
     randomSeed(seed);
 
-    //store last seed and generate new seed
-    lastSeed = seed;
+    //generate new seed
     seed = random(10000);
 
     //empty the grid
@@ -179,25 +138,6 @@ function resetGrid() {
     //for each cell, create empty cell
     for(let i = 0; i < DIM * DIM; i++){
         grid[i] = new Cell(false, [...options]);
-    }
-}
-
-//function to remove duplicate tiles
-function removeDuplicateTiles() {
-    //for each tile
-    for(let i = 0; i < tiles.length; i++){
-        //get next tile
-        let tile = tiles[i];
-
-        //for rest of tiles
-        for(let j = i + 1; j < tiles.length; j++){
-            //if tiles are the same
-            if(tile.equals(tiles[j])){
-                //remove duplicate and adjust j
-                tiles.splice(j, 1);
-                j--;
-            }
-        }
     }
 }
 
@@ -227,6 +167,44 @@ function drawGrid() {
             }
         }
     }
+}
+
+//function to check for contradiction
+function checkContradiction(cell) {
+    //if no contradiction return false
+    if(cell.options.length !== 0) return false;
+
+    //reset state and remove picked option
+    let lastState = backStepper.getState();
+    grid = lastState.grid;
+    cell = grid[lastState.index];
+    cell.options.splice(cell.options.indexOf(lastState.index),1);
+
+    //collapse cell
+    collapseCell(cell, lastState.index);
+
+    //back step and propagate
+    console.log("BACK STEP");
+    propagateChanges(cell);
+
+    return true;
+}
+
+//function to collapse cell
+function collapseCell(cell, gridIndex) {
+    //pick option from options
+    let pick = [random(cell.options)];
+
+    //store state if multiple options
+    if(cell.options.length > 1)
+        backStepper.saveState(
+        [...grid].map((cell) => new Cell(cell.collapsed, [...cell.options])),
+        gridIndex,
+        pick);
+
+    //collapse
+    cell.options = pick;
+    cell.collapsed = true;
 }
 
 //function that propagates changes to options
@@ -267,7 +245,7 @@ function propagateChanges(cell) {
             }
         }
 
-        //check if cell above exists and is not collapsed
+        //check if cell to the right exists and is not collapsed
         if(column !== DIM - 1 && !grid[gridIndex + 1].collapsed && !visited.includes(grid[gridIndex + 1])){
             //get right options length and cell to visited
             const len = grid[gridIndex + 1].options.length;
@@ -288,7 +266,7 @@ function propagateChanges(cell) {
             }
         }
 
-        //check if cell above exists and is not collapsed
+        //check if cell below exists and is not collapsed
         if(row !== DIM - 1 && !grid[gridIndex + DIM].collapsed && !visited.includes(grid[gridIndex + DIM])){
             //get down options length and cell to visited
             const len = grid[gridIndex + DIM].options.length;
@@ -309,7 +287,7 @@ function propagateChanges(cell) {
             }
         }
 
-        //check if cell above exists and is not collapsed
+        //check if cell to the left exists and is not collapsed
         if(column !== 0 && !grid[gridIndex - 1].collapsed && !visited.includes(grid[gridIndex - 1])){
             //get left options length and cell to visited
             const len = grid[gridIndex - 1].options.length;

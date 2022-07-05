@@ -1,0 +1,10 @@
+{
+  "image" : "../files/tiles/demo/images/0.png",
+  "type" : "s",
+  "edges" : [
+    "a",
+    "a",
+    "a",
+    "a"
+  ]
+}
