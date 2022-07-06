@@ -61,19 +61,19 @@ class Tile {
         //for each tile check if any edges match
         //if so, add index to possible connections
         for(let tile of tiles){
-            if(tile.edges[2] === this.edges[0]){
+            if(tile.edges[2].split("").reverse().join("") === this.edges[0]){
                 this.up.push(tile.index);
             }
 
-            if(tile.edges[3] === this.edges[1]){
+            if(tile.edges[3].split("").reverse().join("") === this.edges[1]){
                 this.right.push(tile.index);
             }
 
-            if(tile.edges[0] === this.edges[2]){
+            if(tile.edges[0].split("").reverse().join("") === this.edges[2]){
                 this.down.push(tile.index);
             }
 
-            if(tile.edges[1] === this.edges[3]){
+            if(tile.edges[1].split("").reverse().join("") === this.edges[3]){
                 this.left.push(tile.index);
             }
         }

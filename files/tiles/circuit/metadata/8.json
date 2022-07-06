@@ -1,0 +1,10 @@
+{
+  "image" : "8.png",
+  "type" : "a",
+  "edges" : [
+    "bdb",
+    "bbb",
+    "bcb",
+    "bbb"
+  ]
+}

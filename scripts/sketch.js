@@ -2,7 +2,7 @@
 let tiles = [];
 const tileImages = [];
 const baseTileData = [];
-const numBaseTiles = 2;
+const numBaseTiles = 13;
 
 //array to store grid and var to store dimensions
 let grid = [];
@@ -17,7 +17,7 @@ let seed = -1;
 
 function preload() {
     //get base tile data
-    const path = "../files/tiles/demo";
+    const path = "../files/tiles/circuit";
     for(let i = 0; i < numBaseTiles; i++){
         baseTileData[i] = loadJSON(`${path}/metadata/${i}.json`, () => loadTileImage(path, i));
     }
@@ -69,6 +69,7 @@ function setup() {
 
     //stop looping
     if(!DEBUG_MODE) noLoop();
+    console.table(tiles);
 }
 
 function draw() {

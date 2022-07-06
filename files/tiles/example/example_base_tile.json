@@ -1,10 +1,10 @@
 {
-  "image" : "/path/img.png",
-  "type" : "s/f/a",
+  "image" : "",
+  "type" : "",
   "edges" : [
-    "a",
-    "b",
-    "c",
-    "d"
+    "",
+    "",
+    "",
+    ""
   ]
 }
